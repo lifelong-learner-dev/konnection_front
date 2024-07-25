@@ -1,7 +1,5 @@
-// App.js
-
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { DJANGO_API_URL } from '@env';
 
 const App = () => {
@@ -39,7 +37,9 @@ const App = () => {
         value={message}
         onChangeText={setMessage}
       />
-      <Button title="Send" onPress={sendMessage} />
+      <Pressable style={styles.button} onPress={sendMessage}>
+        <Text style={styles.buttonText}>Send</Text>
+      </Pressable>
       {response ? <Text style={styles.response}>{response}</Text> : null}
     </View>
   );
@@ -62,6 +62,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 20,
     paddingHorizontal: 10,
+  },
+  button: {
+    backgroundColor: '#007BFF',
+    padding: 10,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 18,
   },
   response: {
     marginTop: 20,
