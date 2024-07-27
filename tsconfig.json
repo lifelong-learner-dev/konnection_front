@@ -1,7 +1,7 @@
 {
   "extends": "@react-native/typescript-config/tsconfig.json",
   "compilerOptions": {
-    "moduleResolution": "node",
+    "moduleResolution": "node",  // 'nodenext'를 시도해 볼 수도 있습니다.
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

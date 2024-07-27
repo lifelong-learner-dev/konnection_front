@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Picker } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DJANGO_API_URL } from '@env';
 
-const App = () => {
+const Stack = createNativeStackNavigator();
+
+const HomeScreen = ({ navigation }) => {
   const [message, setMessage] = useState('');
   const [response, setResponse] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -20,6 +24,7 @@ const App = () => {
       .then((data) => {
         if (data.response) {
           setResponse(data.response);
+          handleVoiceCommand(data.response);  // 음성 명령 처리
           speak(data.response);  // TTS 기능 호출
         } else {
           setResponse('Error: ' + data.error);
@@ -52,6 +57,7 @@ const App = () => {
       recognition.onresult = (event) => {
         setMessage(event.results[0][0].transcript);
         setIsRecording(false);  // 녹음 상태 해제
+        handleVoiceCommand(event.results[0][0].transcript);  // 음성 명령 처리
       };
       recognition.onerror = (event) => {
         console.error('Speech recognition error', event);
@@ -60,6 +66,14 @@ const App = () => {
       recognition.start();
     } else {
       console.log('STT not supported in this browser.');
+    }
+  };
+
+  const handleVoiceCommand = (command) => {
+    if (command.includes("버스")) {
+      navigation.navigate('Bus');
+    } else if (command.includes("달력")) {
+      navigation.navigate('Calendar');
     }
   };
 
@@ -101,8 +115,35 @@ const App = () => {
   );
 };
 
+const BusScreen = () => (
+  <View style={styles.container}>
+    <Text style={styles.title}>버스 시간 확인</Text>
+    {/* 여기에 버스 시간 확인 기능을 추가하세요 */}
+  </View>
+);
+
+const CalendarScreen = () => (
+  <View style={styles.container}>
+    <Text style={styles.title}>달력 확인</Text>
+    {/* 여기에 달력 확인 기능을 추가하세요 */}
+  </View>
+);
+
+const App = () => {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Home">
+        <Stack.Screen name="Home" component={HomeScreen} options={{ title: '메인 페이지' }} />
+        <Stack.Screen name="Bus" component={BusScreen} options={{ title: '버스 시간 확인' }} />
+        <Stack.Screen name="Calendar" component={CalendarScreen} options={{ title: '달력 확인' }} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+};
+
 const styles = StyleSheet.create({
   container: {
+    marginTop: 20,
     flex: 1,
     justifyContent: 'center',
     padding: 20,
