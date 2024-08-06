@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Picker } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Button } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DJANGO_API_URL } from '@env';
+import Geolocation from '@react-native-community/geolocation';
 
 const Stack = createNativeStackNavigator();
 
@@ -10,7 +11,7 @@ const HomeScreen = ({ navigation }) => {
   const [message, setMessage] = useState('');
   const [response, setResponse] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [language, setLanguage] = useState('ko-KR'); // 기본 언어를 한국어로 설정
+  const [language, setLanguage] = useState('ko-KR');
 
   const sendMessage = () => {
     fetch(DJANGO_API_URL, {
@@ -74,40 +75,19 @@ const HomeScreen = ({ navigation }) => {
       navigation.navigate('Bus');
     } else if (command.includes("달력")) {
       navigation.navigate('Calendar');
+    } else if (command.includes("오늘 날씨")) {
+      navigation.navigate('TodayWeather');
+    } else if (command.includes("이번주 날씨")) {
+      navigation.navigate('WeekWeather');
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>AI Chatbot</Text>
-      <Picker
-        selectedValue={language}
-        style={styles.picker}
-        onValueChange={(itemValue) => setLanguage(itemValue)}
-      >
-        <Picker.Item label="한국어" value="ko-KR" />
-        <Picker.Item label="영국 영어" value="en-GB" />
-        <Picker.Item label="미국 영어" value="en-US" />
-        <Picker.Item label="터키어" value="tr-TR" />
-        <Picker.Item label="프랑스어" value="fr-FR" />
-        <Picker.Item label="독일어" value="de-DE" />
-        <Picker.Item label="스페인어" value="es-ES" />
-        <Picker.Item label="포르투갈어" value="pt-PT" />
-        <Picker.Item label="일본어" value="ja-JP" />
-        <Picker.Item label="중국어" value="zh-CN" />
-      </Picker>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your message"
-        value={message}
-        onChangeText={setMessage}
-      />
-      <Pressable style={styles.button} onPress={sendMessage} disabled={isRecording}>
-        <Text style={styles.buttonText}>Send</Text>
-      </Pressable>
+      <Text style={styles.title}>버스, 오늘의 날씨, 이번주의 날씨, 달력 중 하나를 말해주세요.</Text>
       <Pressable style={styles.button} onPress={startListening} disabled={isRecording}>
         <Text style={styles.buttonText}>
-          {isRecording ? 'Recording...' : 'Start Listening'}
+          {isRecording ? '녹음 중...' : '음성 듣기 시작'}
         </Text>
       </Pressable>
       {response ? <Text style={styles.response}>{response}</Text> : null}
@@ -115,19 +95,177 @@ const HomeScreen = ({ navigation }) => {
   );
 };
 
+const TodayWeatherScreen = () => {
+  const [weatherInfo, setWeatherInfo] = useState(null);
+
+  const fetchTodayWeather = () => {
+    Geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        fetch('http://localhost:8000/api/weather/today/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `latitude=${latitude}&longitude=${longitude}`,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.error) {
+              console.error(data.error);
+            } else {
+              setWeatherInfo(data);
+            }
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+      },
+      (error) => {
+        console.error(error);
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>오늘의 날씨</Text>
+      <Pressable style={styles.button} onPress={fetchTodayWeather}>
+        <Text style={styles.buttonText}>오늘 날씨 가져오기</Text>
+      </Pressable>
+      {weatherInfo && (
+        <View style={styles.weatherContainer}>
+          <Text style={styles.weatherText}>최저 기온: {weatherInfo.min_temp}°C</Text>
+          <Text style={styles.weatherText}>최고 기온: {weatherInfo.max_temp}°C</Text>
+          <Text style={styles.weatherText}>날씨: {weatherInfo.weather_description}</Text>
+          {weatherInfo.rain_info && <Text style={styles.weatherText}>비 오는 시간: {weatherInfo.rain_info}</Text>}
+        </View>
+      )}
+    </View>
+  );
+};
+
+const WeekWeatherScreen = () => {
+  const [weatherInfo, setWeatherInfo] = useState(null);
+
+  const fetchWeekWeather = () => {
+    Geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        fetch('http://localhost:8000/api/weather/week/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `latitude=${latitude}&longitude=${longitude}`,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.error) {
+              console.error(data.error);
+            } else {
+              setWeatherInfo(data);
+            }
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+      },
+      (error) => {
+        console.error(error);
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>이번 주 날씨</Text>
+      <Pressable style={styles.button} onPress={fetchWeekWeather}>
+        <Text style={styles.buttonText}>이번 주 날씨 가져오기</Text>
+      </Pressable>
+      {weatherInfo && (
+        <View style={styles.weatherContainer}>
+          {weatherInfo.rain_dates && weatherInfo.rain_dates.length > 0 ? (
+            weatherInfo.rain_dates.map((date, index) => (
+              <Text key={index} style={styles.weatherText}>{date.date} - {date.description}</Text>
+            ))
+          ) : (
+            <Text style={styles.weatherText}>이번 주 비 소식 없음</Text>
+          )}
+        </View>
+      )}
+    </View>
+  );
+};
+
 const BusScreen = () => (
   <View style={styles.container}>
-    <Text style={styles.title}>버스 시간 확인</Text>
-    {/* 여기에 버스 시간 확인 기능을 추가하세요 */}
+    <Text style={styles.title}>용인, 곤지암, 도척, 어디로 가세요?</Text>
+    <Pressable style={styles.button}>
+      <Text style={styles.buttonText}>음성 듣기 시작</Text>
+    </Pressable>
   </View>
 );
 
-const CalendarScreen = () => (
-  <View style={styles.container}>
-    <Text style={styles.title}>달력 확인</Text>
-    {/* 여기에 달력 확인 기능을 추가하세요 */}
-  </View>
-);
+const CalendarScreen = () => {
+  const [events, setEvents] = useState([]);
+  const [calendarEvent, setCalendarEvent] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+
+  const startListening = () => {
+    if ('webkitSpeechRecognition' in window) {
+      setIsRecording(true);
+      const recognition = new webkitSpeechRecognition();
+      recognition.lang = 'ko-KR';
+      recognition.onresult = (event) => {
+        const command = event.results[0][0].transcript;
+        handleCalendarCommand(command);
+        setIsRecording(false);
+      };
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error', event);
+        setIsRecording(false);
+      };
+      recognition.start();
+    } else {
+      console.log('STT not supported in this browser.');
+    }
+  };
+
+  const handleCalendarCommand = (command) => {
+    if (command.includes('추가')) {
+      setEvents([...events, calendarEvent]);
+      setCalendarEvent('');
+    } else if (command.includes('삭제')) {
+      setEvents(events.filter((event) => event !== calendarEvent));
+      setCalendarEvent('');
+    } else if (command.includes('수정')) {
+      const newEvent = command.replace('수정', '').trim();
+      setEvents(events.map((event) => (event === calendarEvent ? newEvent : event)));
+      setCalendarEvent('');
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>달력 확인</Text>
+      <Text style={styles.subtitle}>현재 일정: {events.join(', ')}</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="일정을 입력하세요"
+        value={calendarEvent}
+        onChangeText={setCalendarEvent}
+      />
+      <Pressable style={styles.button} onPress={startListening} disabled={isRecording}>
+        <Text style={styles.buttonText}>
+          {isRecording ? '녹음 중...' : '음성 듣기 시작'}
+        </Text>
+      </Pressable>
+    </View>
+  );
+};
 
 const App = () => {
   return (
@@ -136,6 +274,8 @@ const App = () => {
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: '메인 페이지' }} />
         <Stack.Screen name="Bus" component={BusScreen} options={{ title: '버스 시간 확인' }} />
         <Stack.Screen name="Calendar" component={CalendarScreen} options={{ title: '달력 확인' }} />
+        <Stack.Screen name="TodayWeather" component={TodayWeatherScreen} options={{ title: '오늘 날씨' }} />
+        <Stack.Screen name="WeekWeather" component={WeekWeatherScreen} options={{ title: '이번 주 날씨' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -143,42 +283,75 @@ const App = () => {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
+    backgroundColor: 'linear-gradient(to right, #f5f7fa, #c3cfe2)',
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
+    fontWeight: '600',
+    color: '#333',
     marginBottom: 20,
     textAlign: 'center',
   },
-  picker: {
-    height: 50,
-    width: 200,
-    alignSelf: 'center',
-    marginBottom: 20,
+  subtitle: {
+    fontSize: 18,
+    color: '#555',
+    marginBottom: 10,
   },
   input: {
-    height: 40,
-    borderColor: 'gray',
+    height: 50,
+    borderColor: '#ddd',
     borderWidth: 1,
+    borderRadius: 10,
     marginBottom: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: 15,
+    width: '100%',
+    backgroundColor: '#f9f9f9',
   },
   button: {
-    backgroundColor: '#007BFF',
-    padding: 10,
+    backgroundColor: '#4CAF50',
+    padding: 15,
+    borderRadius: 25,
     alignItems: 'center',
     marginTop: 10,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   buttonText: {
     color: 'white',
     fontSize: 18,
+    fontWeight: '600',
   },
   response: {
     marginTop: 20,
     fontSize: 18,
+    color: '#444',
+    textAlign: 'center',
+  },
+  weatherContainer: {
+    marginTop: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderRadius: 10,
+    borderColor: '#ddd',
+    width: '100%',
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  weatherText: {
+    fontSize: 16,
+    color: '#555',
   },
 });
 
